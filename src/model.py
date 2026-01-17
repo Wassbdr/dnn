@@ -3,13 +3,13 @@ import torch.nn as nn
 from torchvision import models
 from src.config import config
 
-class ASLModel(nn.Module):
+class SignCNN(nn.Module):
     """
-    CNN personnalisé 'From Scratch'.
-    Architecture simple et efficace pour la démonstration académique.
+    CNN générique pour la reconnaissance de signes.
+    Architecture simple et efficace pour tout alphabet (ASL, LSF, etc.).
     """
     def __init__(self, num_classes):
-        super(ASLModel, self).__init__()
+        super(SignCNN, self).__init__()
         # Feature Extractor
         self.features = nn.Sequential(
             # Bloc 1
@@ -67,6 +67,6 @@ def get_model(model_name="custom", num_classes=29):
         
     else:
         # Default to Custom
-        model = ASLModel(num_classes)
+        model = SignCNN(num_classes)
         
     return model.to(config.DEVICE)
