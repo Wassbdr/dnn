@@ -31,9 +31,9 @@ class Config:
         if self.IS_KAGGLE:
             # Chemins potentiels sur Kaggle
             candidates = [
+                "/kaggle/input/risangbaskoro/wlasl-processed", # Target dataset
+                "/kaggle/input/wlasl-processed",
                 "/kaggle/input/asl-alphabet/asl_alphabet_train/asl_alphabet_train",
-                "/kaggle/input/lsf-alphabet/lsf_alphabet_train", # Exemple d'extension future
-                "/kaggle/input/sign-language-mnist"
             ]
             for path in candidates:
                 if os.path.exists(path):
