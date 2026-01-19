@@ -264,9 +264,11 @@ L'augmentation du temps d'entrainement n'a pas resolu le probleme fondamental.
 
 **Conclusion :** Le probleme est structurel, lie au ratio de la fonction de perte, non au nombre d'iterations.
 
-### Perspective
+### Perspective et transition vers Maps
 
 Cette observation a motive nos experimentations sur Maps et Edges2Shoes : reduction de lambda a 10 combinee a la VGG Perceptual Loss pour privilegier la qualite perceptuelle sur la fidelite pixel-a-pixel.
+
+**Pourquoi Maps ensuite ?** Le dataset Maps presente des defis complementaires a Facades : alors que Facades requiert des textures architecturales fines, Maps necessite une coherence spatiale sur de longues distances (routes, batiments). Les deux partagent le probleme du flou L1, mais Maps ajoute la complexite des structures connectees.
 
 ---
 
@@ -362,6 +364,12 @@ class VGGLoss(nn.Module):
 | Normalisation G | InstanceNorm |
 | Normalisation D | SpectralNorm |
 
+### Transition vers Edges2Shoes
+
+Les ameliorations validees sur Maps (VGG Loss, LSGAN, Spectral Norm) constituent maintenant notre nouvelle baseline. Mais Edges2Shoes pose un defi different : generer des **textures riches et variees** (cuir, toile, lacets) a partir d'informations minimales (simples contours). 
+
+La question se pose : l'architecture U-Net est-elle optimale pour ce type de tache creative, ou une architecture avec plus de liberte serait-elle preferable ?
+
 ---
 
 ## Slide 12 : Edges2Shoes - Experimentation ResNet
@@ -369,13 +377,13 @@ class VGGLoss(nn.Module):
 
 ### Contexte specifique
 
-Le dataset Edges2Shoes presente un defi unique : generer des textures riches (cuir, toile, lacets) a partir de simples contours noirs sur fond blanc.
+Fort des ameliorations validees sur Maps, j'ai voulu explorer une piste architecturale differente pour Edges2Shoes.
 
-### Hypothese : U-Net trop contraint
+### Hypothese initiale : U-Net trop contraint ?
 
-Les skip-connections du U-Net forcent une correspondance spatiale stricte entre input et output. Pour Edges2Shoes, une plus grande liberte creative pourrait etre benefique.
+Les skip-connections du U-Net forcent une correspondance spatiale stricte entre input et output. Pour Edges2Shoes, ou l'on genere des textures riches a partir de simples contours, une plus grande liberte creative pourrait etre benefique.
 
-**Solution proposee :** Generateur ResNet (9 blocs residuels)
+**Solution testee :** Generateur ResNet (9 blocs residuels)
 
 ### Architecture ResNet Generator
 
@@ -387,25 +395,39 @@ Encodeur (3 convolutions)
 
 **Difference fondamentale :** Pas de skip-connections, transformation dans un espace latent compresse.
 
-### Resultats experimentaux (v3)
+### Resultats experimentaux (v3) - Premiers resultats encourageants
 
 | Aspect | U-Net Baseline | ResNet |
 |--------|----------------|--------|
-| Richesse textures | Moyenne | Excellente |
-| Precision contours | Bonne | Mediocre |
-| Respect forme originale | Strict | Approximatif |
+| Richesse textures | Moyenne | **Excellente** |
+| Variations couleurs | Limitees | **Naturelles** |
+| Creativite | Contrainte | **Libre** |
 
-### Analyse critique
+**Observation positive :** Les textures generees etaient remarquablement riches - cuir brillant, toile texturee, lacets detailles. Le ResNet produisait des chaussures visuellement tres convaincantes.
 
-**Succes :** Textures materiaux plus realistes, variations de couleurs plus naturelles.
+### Probleme decouvert : Brouillard de pixels
 
-**Echec :** Les contours du croquis ne sont plus respectes precisement. Une chaussure peut changer de forme.
+Malgre ces resultats prometteurs, un probleme est apparu progressivement : un **brouillard de pixels** (pixel fog) affectait certaines zones de l'image, particulierement dans les regions de transition entre textures.
 
-### Decision
+| Symptome | Description |
+|----------|-------------|
+| Zones floues | Halos grisatres autour des contours |
+| Perte de nettete | Details fins noyes dans le bruit |
+| Inconsistance | Qualite variable selon les regions |
 
-**Retour au U-Net** avec modifications ciblees. Les skip-connections sont essentielles pour preserver la fidelite geometrique.
+**Diagnostic :** Sans les skip-connections, le decodeur perd des informations spatiales fines lors de la reconstruction, generant ce brouillard caracteristique.
 
-**Lecon :** L'architecture doit etre choisie en fonction des contraintes du probleme. Pour Edges2Shoes, la precision spatiale prime sur la liberte creative.
+### Decision : Retour au U-Net
+
+Malgre la richesse des textures ResNet, le brouillard de pixels degradait trop la qualite finale. **J'ai decide de revenir au U-Net** et d'y integrer les ameliorations validees (VGG Loss, LSGAN) plutot que de changer d'architecture.
+
+**Lecon cle :** Une architecture produisant de bons resultats partiels peut avoir des defauts structurels redhibitoires. Les skip-connections du U-Net sont essentielles pour maintenir la clarte spatiale.
+
+### Transition : Capitaliser sur les acquis
+
+Ce retour au U-Net n'est pas un echec mais un **pivot strategique**. L'experimentation ResNet m'a montre que des textures riches etaient possibles - le probleme etait la methode, pas l'objectif. J'ai donc conserve l'idee d'ameliorer la richesse des textures, mais en utilisant la **VGG Loss** plutot qu'un changement d'architecture. 
+
+L'objectif : obtenir les textures riches du ResNet avec la precision spatiale du U-Net.
 
 ---
 
@@ -414,7 +436,7 @@ Encodeur (3 convolutions)
 
 ### Hypothese
 
-Le flou persistant provient de la perte L1 seule. La VGG Loss devrait ameliorer la qualite perceptuelle sans sacrifier la precision geometrique du U-Net.
+Plutot que de changer d'architecture, pourquoi ne pas changer la fonction de perte ? La VGG Loss devrait ameliorer la qualite perceptuelle sans sacrifier la precision geometrique du U-Net.
 
 ### Test : Integration VGG Loss (v4)
 
